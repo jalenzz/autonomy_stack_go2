@@ -28,6 +28,11 @@
 
   <build_depend>pcl_ros</build_depend>
   <exec_depend>pcl_ros</exec_depend>
+  <exec_depend>graph_decoder</exec_depend>
+  <exec_depend>goalpoint_rviz_plugin</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>teleop_rviz_plugin</exec_depend>
+  <exec_depend>teleop_rviz_plugin_plus</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
@@ -36,4 +41,3 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
-

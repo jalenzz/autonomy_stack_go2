@@ -17,11 +17,6 @@ Panels:
       - /Current View1
     Name: Views
     Splitter Ratio: 0.5
-  - Class: rviz_common/Time
-    Experimental: false
-    Name: Time
-    SyncMode: 0
-    SyncSource: FreePaths
   - Class: teleop_rviz_plugin/TeleopPanel
     Name: TeleopPanel
 Visualization Manager:
@@ -446,8 +441,6 @@ Window Geometry:
   SemanticImage:
     collapsed: false
   TeleopPanel:
-    collapsed: false
-  Time:
     collapsed: false
   Tool Properties:
     collapsed: false
