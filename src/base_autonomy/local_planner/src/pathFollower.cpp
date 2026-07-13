@@ -34,10 +34,6 @@
 #include "rmw/types.h"
 #include "rmw/qos_profiles.h"
 
-// For real robot
-#include "unitree_api/msg/request.hpp"
-#include "common/ros2_sport_client.h"
-
 using namespace std;
 
 const double PI = 3.1415926;
@@ -75,7 +71,6 @@ bool autonomyMode = false;
 double autonomySpeed = 1.0;
 double joyToSpeedDelay = 2.0;
 double goalCloseDis = 1.0;
-bool is_real_robot = false;
 
 float joySpeed = 0;
 float joySpeedRaw = 0;
@@ -113,9 +108,6 @@ double switchTime = 0;
 
 nav_msgs::msg::Path path;
 rclcpp::Node::SharedPtr nh;
-
-unitree_api::msg::Request req;
-SportClient sport_req;
 
 void odomHandler(const nav_msgs::msg::Odometry::ConstSharedPtr odomIn)
 {
@@ -245,7 +237,6 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("autonomySpeed", autonomySpeed);
   nh->declare_parameter<double>("joyToSpeedDelay", joyToSpeedDelay);
   nh->declare_parameter<double>("goalCloseDis", goalCloseDis);
-  nh->declare_parameter<bool>("is_real_robot", is_real_robot);
 
   nh->get_parameter("sensorOffsetX", sensorOffsetX);
   nh->get_parameter("sensorOffsetY", sensorOffsetY);
@@ -278,7 +269,6 @@ int main(int argc, char** argv)
   nh->get_parameter("autonomySpeed", autonomySpeed);
   nh->get_parameter("joyToSpeedDelay", joyToSpeedDelay);
   nh->get_parameter("goalCloseDis", goalCloseDis);
-  nh->get_parameter("is_real_robot", is_real_robot);
 
   auto subOdom = nh->create_subscription<nav_msgs::msg::Odometry>("/state_estimation", 5, odomHandler);
 
@@ -291,8 +281,6 @@ int main(int argc, char** argv)
   auto subStop = nh->create_subscription<std_msgs::msg::Int8>("/stop", 5, stopHandler);
 
   auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 5);
-
-  auto pubGo2Request = nh->create_publisher<unitree_api::msg::Request>("/api/sport/request", 10);
 
   geometry_msgs::msg::TwistStamped cmd_vel;
   cmd_vel.header.frame_id = "vehicle";
@@ -425,17 +413,6 @@ int main(int argc, char** argv)
         pubSpeed->publish(cmd_vel);
 
         pubSkipCount = pubSkipNum;
-
-        if (is_real_robot)
-        {
-          if (cmd_vel.twist.linear.x == 0 && cmd_vel.twist.linear.y == 0 && cmd_vel.twist.angular.z == 0){
-          	sport_req.StopMove(req);
-          }
-          else{
-               sport_req.Move(req, cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
-          }
-          pubGo2Request->publish(req);
-        }
       }
     }
 

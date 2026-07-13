@@ -7,7 +7,7 @@
     <param name="waypointZBound" value="5.0" />
     <param name="waitTime" value="0.0" />
     <param name="frameRate" value="5.0" />
-    <param name="speed" value="1.0" />
+    <param name="speed" value="0.4" />
     <param name="sendSpeed" value="true" />
     <param name="sendBoundary" value="true" />
   </node>
