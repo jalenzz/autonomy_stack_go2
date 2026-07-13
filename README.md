@@ -163,6 +163,10 @@ ros2 run calibrate_imu calibrate_imu
 
 ### System Usage
 
+当前仓库的真实机器人启动链已支持 MID360 + Fast-LIO，并已配置当前安装方式下的
+MID360 到 Go2 机身中心外参；更换安装位置后必须重新测量。接口、TF、构建和验收步骤见
+[`docs/mid360_fast_lio_migration.md`](docs/mid360_fast_lio_migration.md)。
+
 In a terminal, go to the repository folder and use the command line below to launch the system. This launches the SLAM module and the base autonomy system. If using an external computer, **source the 'unitree_ros2_setup.sh' script** first as mentioned in the Unitree instructions.
 ```
 ./system_real_robot.sh

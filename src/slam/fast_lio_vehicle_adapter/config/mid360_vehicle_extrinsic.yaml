@@ -1,0 +1,22 @@
+/**:
+  ros__parameters:
+    # Measured installation extrinsic supplied for this Go2 + MID360 mount.
+    calibration.configured: true
+
+    # T_vehicle_body: MID360 internal IMU frame (Fast-LIO "body") expressed
+    # in the Go2 vehicle frame. vehicle uses x-forward, y-left, z-up.
+    # Inverse of the measured T_body_vehicle:
+    # xyz=[-0.2450, -0.0273, -0.1255], rpy=[0, -0.314159, 0].
+    vehicle_to_body.translation: [0.271790468, 0.027300000, 0.043648501]
+    vehicle_to_body.rotation_xyzw: [0.0, 0.156434334, 0.0, 0.987688361]
+
+    input_odometry_topic: /fast_lio/odometry_raw
+    output_odometry_topic: /state_estimation
+    global_frame: camera_init
+    fast_lio_body_frame: body
+    vehicle_frame: vehicle
+
+    # Preserve the legacy frame name for RViz/camera consumers. The planner
+    # receives vehicle odometry directly and must use zero sensorOffsetX/Y.
+    publish_sensor_alias: true
+    sensor_alias_frame: sensor

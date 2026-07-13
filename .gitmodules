@@ -1,0 +1,4 @@
+[submodule "src/slam/FAST_LIO"]
+	path = src/slam/FAST_LIO
+	url = git@github.com:jalenzz/FAST_LIO_ROS2.git
+	branch = dev/go2_mid360s

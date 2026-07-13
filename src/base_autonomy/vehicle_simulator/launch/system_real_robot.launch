@@ -1,12 +1,11 @@
 <launch>
 
   <arg name="world_name" default="real_world"/>
-  <arg name="sensorOffsetX" default="0.3"/>
-  <arg name="sensorOffsetY" default="0.0"/>
   <arg name="cameraOffsetZ" default="0.0"/>
   <arg name="vehicleX" default="0.0"/>
   <arg name="vehicleY" default="0.0"/>
   <arg name="checkTerrainConn" default="true"/>
+  <arg name="vehicleExtrinsicConfig" default="$(find-pkg-share fast_lio_vehicle_adapter)/config/mid360_vehicle_extrinsic.yaml"/>
 
   <node pkg="joy" exec="joy_node" name="ps3_joy" output="screen" >
     <param name="dev" value="/dev/input/js0" />
@@ -18,17 +17,30 @@
     <param name="multicast_iface" value="enp3s0"/> 
   </node> -->
 
-  <include file="$(find-pkg-share point_lio_unilidar)/launch/mapping_utlidar.launch">
+  <include file="$(find-pkg-share livox_ros_driver2)/launch_ROS2/msg_MID360s_launch.py" />
+
+  <include file="$(find-pkg-share fast_lio)/launch/mapping.launch.py">
     <arg name="rviz" value="false"/>
+    <arg name="config_file" value="mid360.yaml"/>
+    <arg name="odometry_topic" value="/fast_lio/odometry_raw"/>
+    <arg name="registered_cloud_topic" value="/registered_scan"/>
   </include>
 
+  <node pkg="fast_lio_vehicle_adapter" exec="vehicle_odometry_adapter" name="fast_lio_vehicle_adapter" output="screen">
+    <param from="$(var vehicleExtrinsicConfig)" />
+  </node>
+
   <include file="$(find-pkg-share local_planner)/launch/local_planner.launch" >
-    <arg name="sensorOffsetX" value="$(var sensorOffsetX)" />
-    <arg name="sensorOffsetY" value="$(var sensorOffsetY)" />
+    <!-- /state_estimation already represents the vehicle reference point. -->
+    <arg name="sensorOffsetX" value="0.0" />
+    <arg name="sensorOffsetY" value="0.0" />
     <arg name="cameraOffsetZ" value="$(var cameraOffsetZ)"/>
     <arg name="goalX" value="$(var vehicleX)"/>
     <arg name="goalY" value="$(var vehicleY)"/>
+    <arg name="publishVehicleTf" value="false" />
   </include>
+
+  <include file="$(find-pkg-share go2_cmd_vel_bridge)/launch/cmd_vel_bridge.launch.py" />
 
   <include file="$(find-pkg-share terrain_analysis)/launch/terrain_analysis.launch" />
 
@@ -44,8 +56,6 @@
 
   <node launch-prefix="nice" pkg="rviz2" exec="rviz2" name="rvizGA" args="-d $(find-pkg-share vehicle_simulator)/rviz/vehicle_simulator.rviz"/>
 
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubMap" args="0 0 0 0 0 0 /map /camera_init"/>
-
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubVehicle" args="0 0 0 0 0 0 /aft_mapped /sensor"/>
+  <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubMap" args="0 0 0 0 0 0 map camera_init"/>
 
 </launch>

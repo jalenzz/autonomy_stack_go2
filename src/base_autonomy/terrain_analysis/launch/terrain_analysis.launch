@@ -18,7 +18,9 @@
     <param name="minDyObsVFOV" value="-16.0" />
     <param name="maxDyObsVFOV" value="16.0" />
     <param name="minDyObsPointNum" value="1" />
-    <param name="noDataObstacle" value="true" />
+    <!-- MID360 has a near-field blind zone; filling it as obstacles creates a
+         false red wall in front on flat ground and blocks local planning. -->
+    <param name="noDataObstacle" value="false" />
     <param name="noDataBlockSkipNum" value="0" />
     <param name="minBlockPointNum" value="10" />
     <param name="maxElevBelowVeh" value="-0.6" />
