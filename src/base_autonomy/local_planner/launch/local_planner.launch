@@ -38,8 +38,8 @@
     <param name="dirWeight" value="0.02" />
     <param name="dirThre" value="90.0" />
     <param name="dirToVehicle" value="false" />
-    <param name="pathScale" value="0.75" />
-    <param name="minPathScale" value="0.5" />
+    <param name="pathScale" value="0.5" />
+    <param name="minPathScale" value="0.4" />
     <param name="pathScaleStep" value="0.25" />
     <param name="pathScaleBySpeed" value="true" />
     <param name="minPathRange" value="1.0" />
