@@ -27,9 +27,10 @@ find_package(tf2 REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(pcl_ros REQUIRED)
+find_package(terrain_analysis REQUIRED)
 
 add_executable(terrainAnalysisExt src/terrainAnalysisExt.cpp)
-ament_target_dependencies(terrainAnalysisExt rclcpp std_msgs sensor_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs message_filters pcl_ros pcl_conversions)
+ament_target_dependencies(terrainAnalysisExt rclcpp std_msgs sensor_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs message_filters pcl_ros pcl_conversions terrain_analysis)
 
 install(TARGETS
   terrainAnalysisExt

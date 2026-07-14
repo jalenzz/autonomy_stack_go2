@@ -12,6 +12,7 @@
   <depend>sensor_msgs</depend>
   <depend>message_filters</depend>
   <depend>pcl_ros</depend>
+  <depend>terrain_analysis</depend>
   <depend>pcl_conversions</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>

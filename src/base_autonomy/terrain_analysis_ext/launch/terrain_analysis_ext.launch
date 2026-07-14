@@ -21,8 +21,19 @@
     <param name="ceilingFilteringThre" value="2.0" />
     <param name="localTerrainMapRadius" value="4.0" />
     <param name="stairEnable" value="true" />
-    <param name="stairMinRise" value="0.08" />
-    <param name="stairMinNeighborCells" value="2" />
+    <param name="supportBandEps" value="0.06" />
+    <param name="minSupportPoints" value="3" />
+    <param name="wallBinSize" value="0.10" />
+    <param name="wallFillThre" value="0.55" />
+    <param name="seqLength" value="4" />
+    <param name="flatEps" value="0.08" />
+    <param name="minSeqRise" value="0.1" />
+    <param name="minStepRise" value="0.10" />
+    <param name="maxStepRise" value="0.25" />
+    <param name="minSignificantSteps" value="2" />
+    <param name="minWidthCells" value="2" />
+    <param name="widthHeightEps" value="0.08" />
+    <param name="surfaceEps" value="0.06" />
   </node>
 
 </launch>

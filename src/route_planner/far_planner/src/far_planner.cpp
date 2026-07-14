@@ -895,6 +895,7 @@ std::unordered_set<NavEdge, navedge_hash> ContourGraph::boundary_contour_set_;
 PointKdTreePtr MapHandler::kdtree_terrain_clould_;
 std::vector<int> MapHandler::terrain_grid_occupy_list_;
 std::vector<int> MapHandler::terrain_grid_traverse_list_;
+std::vector<int> MapHandler::terrain_grid_jump_list_;
 std::unordered_set<int> MapHandler::neighbor_obs_indices_;
 std::unordered_set<int> MapHandler::extend_obs_indices_;
 std::unique_ptr<grid_ns::Grid<PointCloudPtr>> MapHandler::world_free_cloud_grid_;

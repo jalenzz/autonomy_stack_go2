@@ -7,6 +7,7 @@
 
 
 #include "far_planner/map_handler.h"
+#include "far_planner/terrain_height_traverse.hpp"
 
 /***************************************************************************************/
 
@@ -54,9 +55,12 @@ void MapHandler::Init(const MapHandlerParams& params) {
         height_grid_size, temp_vec, height_grid_origin, height_grid_resolution, 3);
     
     const int n_terrain_cell = terrain_height_grid_->GetCellNumber();
-    terrain_grid_occupy_list_.resize(n_terrain_cell), terrain_grid_traverse_list_.resize(n_terrain_cell);
+    terrain_grid_occupy_list_.resize(n_terrain_cell);
+    terrain_grid_traverse_list_.resize(n_terrain_cell);
+    terrain_grid_jump_list_.resize(n_terrain_cell);
     std::fill(terrain_grid_occupy_list_.begin(), terrain_grid_occupy_list_.end(), 0);
     std::fill(terrain_grid_traverse_list_.begin(), terrain_grid_traverse_list_.end(), 0);
+    std::fill(terrain_grid_jump_list_.begin(), terrain_grid_jump_list_.end(), 0);
 
     INFLATE_N = 1;
     flat_terrain_cloud_    = PointCloudPtr(new pcl::PointCloud<PCLPoint>());
@@ -76,6 +80,7 @@ void MapHandler::ResetGripMapCloud() {
     std::fill(util_remove_check_list_.begin(),     util_remove_check_list_.end(),     0);
     std::fill(terrain_grid_occupy_list_.begin(),   terrain_grid_occupy_list_.end(),   0);
     std::fill(terrain_grid_traverse_list_.begin(), terrain_grid_traverse_list_.end(), 0);
+    std::fill(terrain_grid_jump_list_.begin(),     terrain_grid_jump_list_.end(),     0);
 }
 
 void MapHandler::ClearObsCellThroughPosition(const Point3D& point) {
@@ -390,6 +395,19 @@ void MapHandler::ObsNeighborCloudWithTerrain(std::unordered_set<int>& neighbor_o
 
 void MapHandler::UpdateTerrainHeightGrid(const PointCloudPtr& freeCloudIn, const PointCloudPtr& terrainHeightOut) {
     if (freeCloudIn->empty()) return;
+    std::fill(terrain_grid_jump_list_.begin(), terrain_grid_jump_list_.end(), 0);
+    // Mark jump cells from transition-free intensity before voxel filtering.
+    for (const auto& point : freeCloudIn->points) {
+        if (point.intensity >= 0.0f) continue;
+        Eigen::Vector3i csub = terrain_height_grid_->Pos2Sub(Eigen::Vector3d(point.x, point.y, 0.0f));
+        std::vector<Eigen::Vector3i> subs;
+        this->Expansion2D(csub, subs, INFLATE_N);
+        for (const auto& sub : subs) {
+            if (!terrain_height_grid_->InRange(sub)) continue;
+            terrain_grid_jump_list_[terrain_height_grid_->Sub2Ind(sub)] = 1;
+        }
+    }
+
     PointCloudPtr copy_free_ptr(new pcl::PointCloud<PCLPoint>());
     pcl::copyPointCloud(*freeCloudIn, *copy_free_ptr);
     FARUtil::FilterCloud(copy_free_ptr, terrain_height_grid_->GetResolution());
@@ -435,19 +453,18 @@ void MapHandler::TraversableAnalysis(const PointCloudPtr& terrainHeightOut) {
     auto IsTraversableNeighbor = [&] (const int& cur_id, const int& ref_id) {
         if (terrain_grid_occupy_list_[ref_id] == 0) return false;
         const float cur_h = terrain_height_grid_->GetCell(cur_id)[0];
-        if (map_params_.allow_terrain_height_jumps) return true;
         float ref_h = 0.0f;
-        int counter = 0;
-        for (const auto& e : terrain_height_grid_->GetCell(ref_id)) {
-            if (abs(e - cur_h) > H_THRED) continue;
-            ref_h += e, counter ++;
+        if (!far_planner::IsTerrainHeightNeighborTraversable(
+                cur_h, terrain_height_grid_->GetCell(ref_id), H_THRED,
+                map_params_.allow_terrain_height_jumps,
+                terrain_grid_jump_list_[cur_id] != 0,
+                terrain_grid_jump_list_[ref_id] != 0,
+                &ref_h)) {
+            return false;
         }
-        if (counter > 0) {
-            terrain_height_grid_->GetCell(ref_id).resize(1);
-            terrain_height_grid_->GetCell(ref_id)[0] = ref_h / (float)counter;
-            return true;
-        }
-        return false;
+        terrain_height_grid_->GetCell(ref_id).resize(1);
+        terrain_height_grid_->GetCell(ref_id)[0] = ref_h;
+        return true;
     };
 
     auto AddTraversePoint = [&] (const int& idx) {
