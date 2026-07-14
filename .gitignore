@@ -24,7 +24,6 @@ src/base_autonomy/vehicle_simulator/mesh/unity/*
 
 src/base_autonomy/vehicle_simulator/log/*
 
-# Runtime diagnostic bags and generated CSV reports.
-diagnostics/
+rosbags/
 
 !readme.txt
