@@ -435,6 +435,7 @@ void MapHandler::TraversableAnalysis(const PointCloudPtr& terrainHeightOut) {
     auto IsTraversableNeighbor = [&] (const int& cur_id, const int& ref_id) {
         if (terrain_grid_occupy_list_[ref_id] == 0) return false;
         const float cur_h = terrain_height_grid_->GetCell(cur_id)[0];
+        if (map_params_.allow_terrain_height_jumps) return true;
         float ref_h = 0.0f;
         int counter = 0;
         for (const auto& e : terrain_height_grid_->GetCell(ref_id)) {

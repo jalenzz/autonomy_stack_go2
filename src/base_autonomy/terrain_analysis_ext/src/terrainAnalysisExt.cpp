@@ -53,6 +53,9 @@ double terrainUnderVehicle = -0.75;
 double terrainConnThre = 0.5;
 double ceilingFilteringThre = 2.0;
 double localTerrainMapRadius = 4.0;
+bool stairEnable = true;
+double stairMinRise = 0.08;
+int stairMinNeighborCells = 2;
 
 // terrain voxel parameters
 float terrainVoxelSize = 2.0;
@@ -81,6 +84,7 @@ float terrainVoxelUpdateTime[terrainVoxelNum] = { 0 };
 float planarVoxelElev[planarVoxelNum] = { 0 };
 int planarVoxelConn[planarVoxelNum] = { 0 };
 vector<float> planarPointElev[planarVoxelNum];
+bool planarStairCell[planarVoxelNum] = {false};
 queue<int> planarVoxelQueue;
 
 double laserCloudTime = 0;
@@ -195,6 +199,9 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("terrainConnThre", terrainConnThre);
   nh->declare_parameter<double>("ceilingFilteringThre", ceilingFilteringThre);
   nh->declare_parameter<double>("localTerrainMapRadius", localTerrainMapRadius);
+  nh->declare_parameter<bool>("stairEnable", stairEnable);
+  nh->declare_parameter<double>("stairMinRise", stairMinRise);
+  nh->declare_parameter<int>("stairMinNeighborCells", stairMinNeighborCells);
 
   nh->get_parameter("scanVoxelSize", scanVoxelSize);
   nh->get_parameter("decayTime", decayTime);
@@ -213,6 +220,9 @@ int main(int argc, char** argv)
   nh->get_parameter("terrainConnThre", terrainConnThre);
   nh->get_parameter("ceilingFilteringThre", ceilingFilteringThre);
   nh->get_parameter("localTerrainMapRadius", localTerrainMapRadius);
+  nh->get_parameter("stairEnable", stairEnable);
+  nh->get_parameter("stairMinRise", stairMinRise);
+  nh->get_parameter("stairMinNeighborCells", stairMinNeighborCells);
 
   auto subOdometry = nh->create_subscription<nav_msgs::msg::Odometry>("/state_estimation", 5, odometryHandler);
 
@@ -462,6 +472,35 @@ int main(int argc, char** argv)
           }
         }
       }
+
+      std::fill(planarStairCell, planarStairCell + planarVoxelNum, false);
+      if (stairEnable)
+      {
+        for (int i = 0; i < planarVoxelNum; i++)
+        {
+          if (planarPointElev[i].size() < static_cast<size_t>(stairMinNeighborCells)) continue;
+          const int ix = i / planarVoxelWidth;
+          const int iy = i % planarVoxelWidth;
+          int occupied_neighbors = 0;
+          float max_neighbor_delta = 0.0f;
+          for (int dx = -1; dx <= 1; dx++)
+          {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+              if (dx == 0 && dy == 0) continue;
+              const int nx = ix + dx, ny = iy + dy;
+              if (nx < 0 || nx >= planarVoxelWidth || ny < 0 || ny >= planarVoxelWidth) continue;
+              const int ni = planarVoxelWidth * nx + ny;
+              if (planarPointElev[ni].empty()) continue;
+              occupied_neighbors++;
+              max_neighbor_delta = std::max(max_neighbor_delta,
+                                             static_cast<float>(fabs(planarVoxelElev[i] - planarVoxelElev[ni])));
+            }
+          }
+          planarStairCell[i] = occupied_neighbors >= stairMinNeighborCells &&
+                               max_neighbor_delta >= stairMinRise;
+        }
+      }
   
       // check terrain connectivity to remove ceiling
       if (checkTerrainConn)
@@ -489,7 +528,8 @@ int main(int argc, char** argv)
                 ind = planarVoxelWidth * (indX + dX) + indY + dY;
                 if (planarVoxelConn[ind] == 0 && planarPointElev[ind].size() > 0)
                 {
-                  if (fabs(planarVoxelElev[front] - planarVoxelElev[ind]) < terrainConnThre)
+                  if (fabs(planarVoxelElev[front] - planarVoxelElev[ind]) < terrainConnThre ||
+                      (stairEnable && (planarStairCell[front] || planarStairCell[ind])))
                   {
                     planarVoxelQueue.push(ind);
                     planarVoxelConn[ind] = 1;
@@ -532,6 +572,8 @@ int main(int argc, char** argv)
               terrainCloudElev->points[terrainCloudElevSize].y = point.y;
               terrainCloudElev->points[terrainCloudElevSize].z = point.z;
               terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
+              if (stairEnable && planarStairCell[ind])
+                terrainCloudElev->points[terrainCloudElevSize].intensity = 0.0f;
 
               terrainCloudElevSize++;
             }

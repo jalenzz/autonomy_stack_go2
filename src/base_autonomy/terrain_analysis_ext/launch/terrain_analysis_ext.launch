@@ -20,6 +20,9 @@
     <param name="terrainUnderVehicle" value="-0.75" />
     <param name="ceilingFilteringThre" value="2.0" />
     <param name="localTerrainMapRadius" value="4.0" />
+    <param name="stairEnable" value="true" />
+    <param name="stairMinRise" value="0.08" />
+    <param name="stairMinNeighborCells" value="2" />
   </node>
 
 </launch>

@@ -18,6 +18,7 @@ struct MapHandlerParams {
     float grid_max_height;
     // local terrain height map
     float height_voxel_dim;
+    bool allow_terrain_height_jumps;
 };
 
 class MapHandler {

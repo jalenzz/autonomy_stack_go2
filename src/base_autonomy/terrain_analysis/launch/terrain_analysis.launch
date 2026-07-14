@@ -34,6 +34,9 @@
     <param name="minRelZ" value="-1.5" />
     <param name="maxRelZ" value="0.5" />
     <param name="disRatioZ" value="0.2" />
+    <param name="stairEnable" value="true" />
+    <param name="stairMinRise" value="0.08" />
+    <param name="stairMinNeighborCells" value="2" />
   </node>
 
 </launch>

@@ -65,6 +65,9 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
+bool stairEnable = true;
+double stairMinRise = 0.08;
+int stairMinNeighborCells = 2;
 
 // terrain voxel parameters
 float terrainVoxelSize = 1.0;
@@ -98,6 +101,7 @@ float planarVoxelElev[planarVoxelNum] = {0};
 int planarVoxelEdge[planarVoxelNum] = {0};
 int planarVoxelDyObs[planarVoxelNum] = {0};
 vector<float> planarPointElev[planarVoxelNum];
+bool planarStairCell[planarVoxelNum] = {false};
 
 double laserCloudTime = 0;
 bool newlaserCloud = false;
@@ -237,6 +241,9 @@ int main(int argc, char **argv) {
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
   nh->declare_parameter<double>("disRatioZ", disRatioZ);
+  nh->declare_parameter<bool>("stairEnable", stairEnable);
+  nh->declare_parameter<double>("stairMinRise", stairMinRise);
+  nh->declare_parameter<int>("stairMinNeighborCells", stairMinNeighborCells);
 
   nh->get_parameter("scanVoxelSize", scanVoxelSize);
   nh->get_parameter("decayTime", decayTime);
@@ -269,6 +276,9 @@ int main(int argc, char **argv) {
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
   nh->get_parameter("disRatioZ", disRatioZ);
+  nh->get_parameter("stairEnable", stairEnable);
+  nh->get_parameter("stairMinRise", stairMinRise);
+  nh->get_parameter("stairMinNeighborCells", stairMinNeighborCells);
 
   auto subOdometry = nh->create_subscription<nav_msgs::msg::Odometry>("/state_estimation", 5, odometryHandler);
 
@@ -581,6 +591,34 @@ int main(int argc, char **argv) {
         }
       }
 
+      // A raised terrain cell is considered traversable when it is part of a
+      // connected height transition.  Isolated vertical returns (walls and
+      // boxes) do not satisfy this neighborhood test and remain obstacles.
+      std::fill(planarStairCell, planarStairCell + planarVoxelNum, false);
+      if (stairEnable) {
+        for (int i = 0; i < planarVoxelNum; i++) {
+          if (planarPointElev[i].size() < static_cast<size_t>(minBlockPointNum)) continue;
+          const int ix = i / planarVoxelWidth;
+          const int iy = i % planarVoxelWidth;
+          int occupied_neighbors = 0;
+          float max_neighbor_delta = 0.0f;
+          for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+              if (dx == 0 && dy == 0) continue;
+              const int nx = ix + dx, ny = iy + dy;
+              if (nx < 0 || nx >= planarVoxelWidth || ny < 0 || ny >= planarVoxelWidth) continue;
+              const int ni = planarVoxelWidth * nx + ny;
+              if (planarPointElev[ni].size() < static_cast<size_t>(minBlockPointNum)) continue;
+              occupied_neighbors++;
+              max_neighbor_delta = std::max(max_neighbor_delta,
+                                             static_cast<float>(fabs(planarVoxelElev[i] - planarVoxelElev[ni])));
+            }
+          }
+          planarStairCell[i] = occupied_neighbors >= stairMinNeighborCells &&
+                               max_neighbor_delta >= stairMinRise;
+        }
+      }
+
       terrainCloudElev->clear();
       int terrainCloudElevSize = 0;
       for (int i = 0; i < terrainCloudSize; i++) {
@@ -612,7 +650,9 @@ int main(int argc, char **argv) {
               if (disZ >= 0 && disZ < vehicleHeight &&
                   planarPointElevSize >= minBlockPointNum) {
                 terrainCloudElev->push_back(point);
-                terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
+                const int cell = planarVoxelWidth * indX + indY;
+                terrainCloudElev->points[terrainCloudElevSize].intensity =
+                    planarStairCell[cell] ? 0.0f : disZ;
 
                 terrainCloudElevSize++;
               }
