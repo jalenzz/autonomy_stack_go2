@@ -18,6 +18,7 @@ struct MapHandlerParams {
     float grid_max_height;
     // local terrain height map
     float height_voxel_dim;
+    bool allow_terrain_height_jumps;
 };
 
 class MapHandler {
@@ -192,6 +193,7 @@ private:
     std::vector<int> util_remove_check_list_;
     static std::vector<int> terrain_grid_occupy_list_;
     static std::vector<int> terrain_grid_traverse_list_;
+    static std::vector<int> terrain_grid_jump_list_;
 
     
     static std::unique_ptr<grid_ns::Grid<PointCloudPtr>> world_free_cloud_grid_;

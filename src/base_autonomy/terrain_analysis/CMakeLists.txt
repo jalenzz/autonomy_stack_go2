@@ -28,8 +28,13 @@ find_package(message_filters REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(pcl_ros REQUIRED)
 
+include_directories(include)
+
 add_executable(terrainAnalysis src/terrainAnalysis.cpp)
 ament_target_dependencies(terrainAnalysis rclcpp std_msgs sensor_msgs nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs message_filters pcl_ros pcl_conversions)
+target_include_directories(terrainAnalysis PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 
 install(TARGETS
   terrainAnalysis
@@ -41,9 +46,13 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(DIRECTORY include/ DESTINATION include)
+ament_export_include_directories(include)
+
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_traversable_terrain test/test_traversable_terrain.cpp)
+  target_include_directories(test_traversable_terrain PRIVATE include)
 endif()
 
 ament_package()

@@ -507,12 +507,14 @@ void FARMaster::LoadROSParams() {
   nh_->declare_parameter<float>(map_prefix + "/cell_length", 5.0);
   nh_->declare_parameter<float>(map_prefix + "/map_grid_max_length", 1000.0);
   nh_->declare_parameter<float>(map_prefix + "/map_grad_max_height", 100.0);
+  nh_->declare_parameter<bool>(map_prefix + "/allow_terrain_height_jumps", true);
 
   // Get map parameters
   nh_->get_parameter(map_prefix + "/floor_height", map_params_.floor_height);
   nh_->get_parameter(map_prefix + "/cell_length", map_params_.cell_length);
   nh_->get_parameter(map_prefix + "/map_grid_max_length", map_params_.grid_max_length);
   nh_->get_parameter(map_prefix + "/map_grad_max_height", map_params_.grid_max_height);
+  nh_->get_parameter(map_prefix + "/allow_terrain_height_jumps", map_params_.allow_terrain_height_jumps);
 
   // Compute dependent parameters
   map_params_.height_voxel_dim = master_params_.voxel_dim * 2.0f;
@@ -893,6 +895,7 @@ std::unordered_set<NavEdge, navedge_hash> ContourGraph::boundary_contour_set_;
 PointKdTreePtr MapHandler::kdtree_terrain_clould_;
 std::vector<int> MapHandler::terrain_grid_occupy_list_;
 std::vector<int> MapHandler::terrain_grid_traverse_list_;
+std::vector<int> MapHandler::terrain_grid_jump_list_;
 std::unordered_set<int> MapHandler::neighbor_obs_indices_;
 std::unordered_set<int> MapHandler::extend_obs_indices_;
 std::unique_ptr<grid_ns::Grid<PointCloudPtr>> MapHandler::world_free_cloud_grid_;

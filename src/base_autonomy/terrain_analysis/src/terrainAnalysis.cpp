@@ -29,6 +29,8 @@
 #include "rmw/types.h"
 #include "rmw/qos_profiles.h"
 
+#include "terrain_analysis/traversable_terrain.hpp"
+
 using namespace std;
 
 const double PI = 3.1415926;
@@ -65,6 +67,20 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
+bool stairEnable = true;
+double supportBandEps = 0.06;
+int minSupportPoints = 3;
+double wallBinSize = 0.10;
+double wallFillThre = 0.55;
+int seqLength = 4;
+double flatEps = 0.08;
+double minSeqRise = 0.06;
+double minStepRise = 0.10;
+double maxStepRise = 0.30;
+int minSignificantSteps = 2;
+int minWidthCells = 2;
+double widthHeightEps = 0.08;
+double surfaceEps = 0.06;
 
 // terrain voxel parameters
 float terrainVoxelSize = 1.0;
@@ -98,6 +114,8 @@ float planarVoxelElev[planarVoxelNum] = {0};
 int planarVoxelEdge[planarVoxelNum] = {0};
 int planarVoxelDyObs[planarVoxelNum] = {0};
 vector<float> planarPointElev[planarVoxelNum];
+bool planarSupportCell[planarVoxelNum] = {false};
+bool planarTransitionCell[planarVoxelNum] = {false};
 
 double laserCloudTime = 0;
 bool newlaserCloud = false;
@@ -237,6 +255,20 @@ int main(int argc, char **argv) {
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
   nh->declare_parameter<double>("disRatioZ", disRatioZ);
+  nh->declare_parameter<bool>("stairEnable", stairEnable);
+  nh->declare_parameter<double>("supportBandEps", supportBandEps);
+  nh->declare_parameter<int>("minSupportPoints", minSupportPoints);
+  nh->declare_parameter<double>("wallBinSize", wallBinSize);
+  nh->declare_parameter<double>("wallFillThre", wallFillThre);
+  nh->declare_parameter<int>("seqLength", seqLength);
+  nh->declare_parameter<double>("flatEps", flatEps);
+  nh->declare_parameter<double>("minSeqRise", minSeqRise);
+  nh->declare_parameter<double>("minStepRise", minStepRise);
+  nh->declare_parameter<double>("maxStepRise", maxStepRise);
+  nh->declare_parameter<int>("minSignificantSteps", minSignificantSteps);
+  nh->declare_parameter<int>("minWidthCells", minWidthCells);
+  nh->declare_parameter<double>("widthHeightEps", widthHeightEps);
+  nh->declare_parameter<double>("surfaceEps", surfaceEps);
 
   nh->get_parameter("scanVoxelSize", scanVoxelSize);
   nh->get_parameter("decayTime", decayTime);
@@ -269,6 +301,20 @@ int main(int argc, char **argv) {
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
   nh->get_parameter("disRatioZ", disRatioZ);
+  nh->get_parameter("stairEnable", stairEnable);
+  nh->get_parameter("supportBandEps", supportBandEps);
+  nh->get_parameter("minSupportPoints", minSupportPoints);
+  nh->get_parameter("wallBinSize", wallBinSize);
+  nh->get_parameter("wallFillThre", wallFillThre);
+  nh->get_parameter("seqLength", seqLength);
+  nh->get_parameter("flatEps", flatEps);
+  nh->get_parameter("minSeqRise", minSeqRise);
+  nh->get_parameter("minStepRise", minStepRise);
+  nh->get_parameter("maxStepRise", maxStepRise);
+  nh->get_parameter("minSignificantSteps", minSignificantSteps);
+  nh->get_parameter("minWidthCells", minWidthCells);
+  nh->get_parameter("widthHeightEps", widthHeightEps);
+  nh->get_parameter("surfaceEps", surfaceEps);
 
   auto subOdometry = nh->create_subscription<nav_msgs::msg::Odometry>("/state_estimation", 5, odometryHandler);
 
@@ -581,6 +627,29 @@ int main(int argc, char **argv) {
         }
       }
 
+      std::fill(planarSupportCell, planarSupportCell + planarVoxelNum, false);
+      std::fill(planarTransitionCell, planarTransitionCell + planarVoxelNum, false);
+      terrain_analysis::TraversableTerrainParams trav_params;
+      trav_params.support_band_eps = static_cast<float>(supportBandEps);
+      trav_params.min_support_points = minSupportPoints;
+      trav_params.wall_bin_size = static_cast<float>(wallBinSize);
+      trav_params.wall_fill_thre = static_cast<float>(wallFillThre);
+      trav_params.vehicle_height = static_cast<float>(vehicleHeight);
+      trav_params.seq_length = seqLength;
+      trav_params.flat_eps = static_cast<float>(flatEps);
+      trav_params.min_seq_rise = static_cast<float>(minSeqRise);
+      trav_params.min_step_rise = static_cast<float>(minStepRise);
+      trav_params.max_step_rise = static_cast<float>(maxStepRise);
+      trav_params.min_significant_steps = minSignificantSteps;
+      trav_params.min_width_cells = minWidthCells;
+      trav_params.width_height_eps = static_cast<float>(widthHeightEps);
+      trav_params.surface_eps = static_cast<float>(surfaceEps);
+      if (stairEnable) {
+        terrain_analysis::DetectTraversableTransitions(
+          planarVoxelElev, planarPointElev, planarVoxelWidth, minBlockPointNum,
+          trav_params, planarSupportCell, planarTransitionCell);
+      }
+
       terrainCloudElev->clear();
       int terrainCloudElevSize = 0;
       for (int i = 0; i < terrainCloudSize; i++) {
@@ -612,7 +681,12 @@ int main(int argc, char **argv) {
               if (disZ >= 0 && disZ < vehicleHeight &&
                   planarPointElevSize >= minBlockPointNum) {
                 terrainCloudElev->push_back(point);
-                terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
+                const int cell = planarVoxelWidth * indX + indY;
+                terrainCloudElev->points[terrainCloudElevSize].intensity =
+                    terrain_analysis::PointIntensity(
+                      point.z, planarVoxelElev[cell], disZ,
+                      planarTransitionCell[cell], planarVoxelElev,
+                      planarSupportCell, planarVoxelWidth, cell, trav_params);
 
                 terrainCloudElevSize++;
               }

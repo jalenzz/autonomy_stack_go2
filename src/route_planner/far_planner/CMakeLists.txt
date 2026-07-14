@@ -80,4 +80,10 @@ install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
 install(DIRECTORY data DESTINATION share/${PROJECT_NAME})
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_terrain_height_traverse test/test_terrain_height_traverse.cpp)
+  target_include_directories(test_terrain_height_traverse PRIVATE include)
+endif()
+
 ament_package()
