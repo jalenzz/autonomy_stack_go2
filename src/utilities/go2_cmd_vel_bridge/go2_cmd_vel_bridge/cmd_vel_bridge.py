@@ -16,6 +16,9 @@ KEY_L2 = 1 << 5
 KEY_R2 = 1 << 4
 KEY_L2_R2 = KEY_L2 | KEY_R2
 
+STICK_DEADZONE = 0.1
+WIRELESS_STALE_TIMEOUT = 1.0
+
 
 def l2_r2_pressed(keys):
     return (keys & KEY_L2_R2) == KEY_L2_R2
@@ -28,6 +31,23 @@ def edge_pressed(now, prev):
 def clamp(value, limit):
     limit = abs(limit)
     return max(-limit, min(limit, value))
+
+
+def apply_deadzone(value, deadzone):
+    return 0.0 if abs(value) <= deadzone else value
+
+
+def sticks_active(lx, ly, rx, deadzone):
+    return (abs(lx) > deadzone or abs(ly) > deadzone or abs(rx) > deadzone)
+
+
+def sticks_to_velocity(lx, ly, rx, deadzone):
+    """Unitree convention: ly=forward, lx=lateral, rx=yaw. No speed clamp."""
+    return (
+        apply_deadzone(ly, deadzone),
+        -apply_deadzone(lx, deadzone),
+        -apply_deadzone(rx, deadzone),
+    )
 
 
 class CmdVelBridge(Node):
@@ -60,10 +80,15 @@ class CmdVelBridge(Node):
         self._autonomy_mode = False
         self._last_keys = 0
         self._last_cmd_time = time.monotonic()
+        self._last_wireless_time = time.monotonic()
         self._active = False
         self._last_vx = 0.0
         self._last_vy = 0.0
         self._last_wz = 0.0
+        self._lx = 0.0
+        self._ly = 0.0
+        self._rx = 0.0
+        self._stick_override = False
 
         self.create_subscription(
             TwistStamped, cmd_vel_topic, self._cmd_vel_callback, 10)
@@ -73,16 +98,20 @@ class CmdVelBridge(Node):
 
         self.get_logger().info(
             'Remote control by default. Press L2+R2 to toggle autonomy. '
+            'In autonomy, stick overrides planner /cmd_vel. '
             'Listening on %s (TwistStamped), Sport on %s' %
             (cmd_vel_topic, sport_request_topic))
 
     def _enter_autonomy_mode(self):
         self._sport.switch_joystick(False)
         self._last_cmd_time = time.monotonic()
-        self.get_logger().info('Autonomy velocity control ENABLED (joystick disabled)')
+        self._stick_override = False
+        self.get_logger().info(
+            'Autonomy velocity control ENABLED (stick overrides planner when active)')
 
     def _exit_autonomy_mode(self):
         self._active = False
+        self._stick_override = False
         self._last_vx = 0.0
         self._last_vy = 0.0
         self._last_wz = 0.0
@@ -102,6 +131,15 @@ class CmdVelBridge(Node):
         if edge_pressed(l2_r2_pressed(keys), l2_r2_pressed(self._last_keys)):
             self._toggle_autonomy_mode()
         self._last_keys = keys
+        self._lx = float(msg.lx)
+        self._ly = float(msg.ly)
+        self._rx = float(msg.rx)
+        self._last_wireless_time = time.monotonic()
+
+    def _stick_override_active(self, now):
+        if (now - self._last_wireless_time) > WIRELESS_STALE_TIMEOUT:
+            return False
+        return sticks_active(self._lx, self._ly, self._rx, STICK_DEADZONE)
 
     def _is_zero(self, vx, vy, wz):
         return (abs(vx) < self._zero_threshold and
@@ -123,6 +161,20 @@ class CmdVelBridge(Node):
             return
 
         now = time.monotonic()
+
+        if self._stick_override_active(now):
+            if not self._stick_override:
+                self.get_logger().info('Stick override ON')
+                self._stick_override = True
+            vx, vy, wz = sticks_to_velocity(
+                self._lx, self._ly, self._rx, STICK_DEADZONE)
+            self._sport.move(vx, vy, wz)
+            return
+
+        if self._stick_override:
+            self.get_logger().info('Stick override OFF, resume planner')
+            self._stick_override = False
+
         timed_out = (now - self._last_cmd_time) > self._cmd_vel_timeout
 
         if not self._active or timed_out:
