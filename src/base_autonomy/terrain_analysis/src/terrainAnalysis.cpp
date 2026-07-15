@@ -12,6 +12,7 @@
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 
 #include "tf2/transform_datatypes.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -213,6 +214,42 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy) {
   }
 }
 
+void publishNoDecayDisMarker(
+    const rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr& pub,
+    double centerX, double centerY, double centerZ, double radius,
+    const builtin_interfaces::msg::Time& stamp) {
+  if (radius <= 0.0) {
+    return;
+  }
+
+  visualization_msgs::msg::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = stamp;
+  marker.ns = "no_decay_dis";
+  marker.id = 0;
+  marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.04;
+  marker.color.r = 0.0f;
+  marker.color.g = 1.0f;
+  marker.color.b = 1.0f;
+  marker.color.a = 0.9f;
+
+  const int segments = 72;
+  marker.points.reserve(segments + 1);
+  for (int i = 0; i <= segments; i++) {
+    const double angle = 2.0 * PI * i / segments;
+    geometry_msgs::msg::Point point;
+    point.x = centerX + radius * cos(angle);
+    point.y = centerY + radius * sin(angle);
+    point.z = centerZ;
+    marker.points.push_back(point);
+  }
+
+  pub->publish(marker);
+}
+
 // cloud clearing callback function
 void clearingHandler(const std_msgs::msg::Float32::ConstSharedPtr dis) {
   noDataInited = 0;
@@ -325,6 +362,8 @@ int main(int argc, char **argv) {
   auto subClearing = nh->create_subscription<std_msgs::msg::Float32>("/map_clearing", 5, clearingHandler);
 
   auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/terrain_map", 2);
+  auto pubNoDecayDisMarker =
+      nh->create_publisher<visualization_msgs::msg::Marker>("/terrain_analysis/no_decay_dis", 2);
 
   for (int i = 0; i < terrainVoxelNum; i++) {
     terrainVoxelCloud[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
@@ -776,6 +815,8 @@ int main(int argc, char **argv) {
       terrainCloud2.header.stamp = rclcpp::Time(static_cast<uint64_t>(laserCloudTime * 1e9));
       terrainCloud2.header.frame_id = "map";
       pubLaserCloud->publish(terrainCloud2);
+      publishNoDecayDisMarker(pubNoDecayDisMarker, vehicleX, vehicleY, vehicleZ, noDecayDis,
+                              terrainCloud2.header.stamp);
     }
 
     // status = ros::ok();
