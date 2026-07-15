@@ -1,3 +1,4 @@
-- 运行 ROS2 相关命令前不要 source /opt/ros 下面的环境，而是用：source ~/unitree_ros2/setup.sh，然后再 source 工作空间（如 source ~/fast_lio_ws/install/setup.bash）。
+- 运行 ROS2 相关命令前不要 source /opt/ros 下面的环境，而是用：source ~/unitree_ros2/setup.sh，然后再 source 工作空间（如 source ~/autonomy_stack_go2/install/setup.bash）。
+- **colcon build 编译时只 source ~/unitree_ros2/setup.sh，不要 source 当前工作空间的 install/setup.bash**（否则会触发 colcon allow-overriding 警告，且可能导致 overlay/underlay 混乱）。
 - colcon build 必须带 --symlink-install 参数
 - 当前为 ROS2 Foxy，ros2 topic 不支持 --once 参数
