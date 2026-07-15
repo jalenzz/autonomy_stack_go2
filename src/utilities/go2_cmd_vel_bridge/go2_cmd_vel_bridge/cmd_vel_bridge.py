@@ -71,12 +71,9 @@ class CmdVelBridge(Node):
             WirelessController, wireless_topic, self._wireless_callback, 10)
         self.create_timer(1.0 / stream_rate, self._stream_callback)
 
-        # Default regular gait; further gait changes stay on the Unitree remote.
-        self._sport.classic_walk(True)
-
         self.get_logger().info(
-            'Remote control by default (ClassicWalk). Press L2+R2 to toggle '
-            'autonomy. Listening on %s (TwistStamped), Sport on %s' %
+            'Remote control by default. Press L2+R2 to toggle autonomy. '
+            'Listening on %s (TwistStamped), Sport on %s' %
             (cmd_vel_topic, sport_request_topic))
 
     def _enter_autonomy_mode(self):

@@ -6,8 +6,6 @@ from unitree_api.msg import Request
 
 ROBOT_SPORT_API_ID_MOVE = 1008
 ROBOT_SPORT_API_ID_SWITCHJOYSTICK = 1027
-ROBOT_SPORT_API_ID_FREEWALK = 2045
-ROBOT_SPORT_API_ID_CLASSICWALK = 2049
 
 
 class SportClient:
@@ -34,14 +32,5 @@ class SportClient:
     def switch_joystick(self, enabled):
         self._publish(
             ROBOT_SPORT_API_ID_SWITCHJOYSTICK,
-            json.dumps({'data': bool(enabled)}),
-        )
-
-    def free_walk(self):
-        self._publish(ROBOT_SPORT_API_ID_FREEWALK)
-
-    def classic_walk(self, enabled=True):
-        self._publish(
-            ROBOT_SPORT_API_ID_CLASSICWALK,
             json.dumps({'data': bool(enabled)}),
         )
