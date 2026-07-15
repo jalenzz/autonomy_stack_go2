@@ -11,7 +11,7 @@ def generate_launch_description():
             'sport_request_topic', default_value='/api/sport/request'),
         DeclareLaunchArgument(
             'wireless_controller_topic', default_value='/wirelesscontroller'),
-        DeclareLaunchArgument('max_linear_x', default_value='0.8'),
+        DeclareLaunchArgument('max_linear_x', default_value='1.0'),
         DeclareLaunchArgument('max_linear_y', default_value='0.6'),
         DeclareLaunchArgument('max_angular_z', default_value='1.0'),
         DeclareLaunchArgument('cmd_vel_timeout', default_value='0.5'),

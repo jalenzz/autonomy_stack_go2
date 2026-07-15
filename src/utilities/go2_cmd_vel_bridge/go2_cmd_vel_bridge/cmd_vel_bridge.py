@@ -57,7 +57,7 @@ class CmdVelBridge(Node):
         self.declare_parameter('cmd_vel_topic', '/cmd_vel')
         self.declare_parameter('sport_request_topic', '/api/sport/request')
         self.declare_parameter('wireless_controller_topic', '/wirelesscontroller')
-        self.declare_parameter('max_linear_x', 0.5)
+        self.declare_parameter('max_linear_x', 1.0)
         self.declare_parameter('max_linear_y', 0.3)
         self.declare_parameter('max_angular_z', 1.0)
         self.declare_parameter('cmd_vel_timeout', 0.5)
